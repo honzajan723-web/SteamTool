@@ -55,9 +55,9 @@
       width: 28px; height: 28px;
       border-radius: 6px;
       object-fit: cover;
-      display: none;
+      display: inline-block;
     }
-    .nav-brand-icon { width: 28px; height: 28px; }
+    .nav-brand-icon { width: 28px; height: 28px; display: none; }
     .nav-right { display: flex; align-items: center; gap: 10px; }
     .nav-icon-btn {
       display: flex;
@@ -189,6 +189,9 @@
       width: 100%; height: 100%;
       object-fit: cover;
       display: none;
+    }
+    .dl-icon img.loaded {
+      display: block;
     }
     .dl-icon svg { width: 22px; height: 22px; color: #fff; }
     .dl-meta { flex: 1; }
@@ -326,8 +329,7 @@
 
       <!-- HERO -->
       <div class="hero">
-        <img id="hero-img" class="hero-logo" src="" alt="SteamTool" />
-        <div id="hero-img-skeleton" class="hero-logo-skeleton skeleton"></div>
+        <img id="hero-img" class="hero-logo" src="" alt="SteamTool" style="opacity: 0.7;" />
         <h1>SteamTool</h1>
         <p>The free toolkit that keeps your Steam library running smoothly.</p>
       </div>
@@ -510,39 +512,124 @@ function toRawUrl(githubUrl) {
 
 // ── JSON parsing ──────────────────────────────────────────────────────────────
 
+function normalizeBrokenJson(s) {
+  // Preserve valid JSON and remove only harmful line breaks.
+  return s.replace(/:\s*\r?\n\s*(?=["\[{\-0-9])/g, ': ');
+}
+
+function parseConfigText(text) {
+  const normalized = normalizeBrokenJson(text);
+  try {
+    const result = JSON.parse(cleanJson(normalized));
+    console.log('parseConfigText: JSON.parse succeeded:', result);
+    return result;
+  } catch (firstError) {
+    console.warn('parseConfigText: JSON.parse failed, using fallback');
+    const config = {};
+    const lines = text.split(/\r?\n/);
+    let pendingKey = null;
+    for (let rawLine of lines) {
+      rawLine = rawLine.trim();
+      if (!rawLine || rawLine.startsWith('//') || rawLine.startsWith('/*') || rawLine.startsWith('*') || rawLine === '{' || rawLine === '}') continue;
+      if (pendingKey) {
+        const match = rawLine.match(/^"([\s\S]*?)"\s*,?$/);
+        if (match) {
+          config[pendingKey] = match[1];
+          console.log(`  Parsed continuation: ${pendingKey} = ${match[1]}`);
+          pendingKey = null;
+        }
+        continue;
+      }
+      const pair = rawLine.match(/^"([^"\\]*(?:\\.[^"\\]*)*)"\s*:\s*"([\s\S]*?)"\s*,?$/);
+      if (pair) {
+        config[pair[1]] = pair[2];
+        console.log(`  Parsed pair: ${pair[1]} = ${pair[2]}`);
+        continue;
+      }
+      const keyOnly = rawLine.match(/^"([^"\\]*(?:\\.[^"\\]*)*)"\s*:\s*$/);
+      if (keyOnly) {
+        pendingKey = keyOnly[1];
+        console.log(`  Pending key: ${keyOnly[1]}`);
+        continue;
+      }
+      const valuePair = rawLine.match(/^"([^"\\]*(?:\\.[^"\\]*)*)"\s*:\s*(.+?)\s*,?$/);
+      if (valuePair) {
+        let value = valuePair[2].trim();
+        if (value.endsWith(',')) value = value.slice(0, -1).trim();
+        if (value.startsWith('"') && value.endsWith('"')) {
+          value = value.slice(1, -1);
+        }
+        config[valuePair[1]] = value;
+        console.log(`  Parsed valuePair: ${valuePair[1]} = ${value}`);
+      }
+    }
+    console.log('parseConfigText: fallback result:', config);
+    if (Object.keys(config).length) return config;
+    throw firstError;
+  }
+}
+
 function cleanJson(s) {
   // Odstran BOM
   s = s.replace(/^\uFEFF/, '');
   // Normalizuj konce radku (Windows \r\n → \n, starý Mac \r → \n)
   s = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-  // Odstran // komentare (radek musi nezacinat uvnitr stringu - nejde 100% odlisit,
-  // ale zustava zachovano puvodni chovani)
-  s = s.replace(/\/\/[^\n]*/g, '');
+  // Odstran // komentare mimo stringy
+  let cleaned = '';
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    const next = s[i + 1];
+    if (inString) {
+      cleaned += ch;
+      if (escaped) {
+        escaped = false;
+      } else if (ch === '\\') {
+        escaped = true;
+      } else if (ch === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (ch === '"') {
+      cleaned += ch;
+      inString = true;
+      continue;
+    }
+    if (ch === '/' && next === '/') {
+      i += 1;
+      while (i + 1 < s.length && s[i + 1] !== '\n') i++;
+      continue;
+    }
+    cleaned += ch;
+  }
+  s = cleaned;
   // Odstran trailing carky pred } nebo ]
   s = s.replace(/,\s*([}\]])/g, '$1');
   // Odstran ostatni skutecne control characters mimo stringy (\x00-\x1F krome \n)
   // a escapuj syrove newliny/taby, ktere zbyly UVNITR JSON stringovych literalu
   let out = '';
-  let inString = false;
-  let escaped = false;
+  let inString2 = false;
+  let escaped2 = false;
   for (let i = 0; i < s.length; i++) {
     const ch = s[i];
     const code = s.charCodeAt(i);
 
-    if (inString) {
-      if (escaped) {
+    if (inString2) {
+      if (escaped2) {
         out += ch;
-        escaped = false;
+        escaped2 = false;
         continue;
       }
-      if (ch === '\\') { out += ch; escaped = true; continue; }
-      if (ch === '"') { out += ch; inString = false; continue; }
+      if (ch === '\\') { out += ch; escaped2 = true; continue; }
+      if (ch === '"') { out += ch; inString2 = false; continue; }
       if (ch === '\n') { out += '\\n'; continue; }
       if (ch === '\t') { out += '\\t'; continue; }
       if (code <= 0x1F) continue; // drop other control chars
       out += ch;
     } else {
-      if (ch === '"') { out += ch; inString = true; continue; }
+      if (ch === '"') { out += ch; inString2 = true; continue; }
       if (code <= 0x1F && ch !== '\n' && ch !== '\t') continue; // drop stray control chars
       out += ch;
     }
@@ -579,7 +666,21 @@ function parseGames(text) {
   }
   return out;
 }
-
+function countGamesFromRaw(text) {
+  const raw = String(text || '');
+  const allAppids = raw.match(/"appid"\s*:\s*"[^"]+"/gi) || [];
+  const gameTypes = raw.match(/"type"\s*:\s*"game"/gi) || [];
+  const dlcTypes = raw.match(/"type"\s*:\s*"dlc"/gi) || [];
+  
+  let games = gameTypes.length || 0;
+  let dlcs = dlcTypes.length || 0;
+  
+  if (!games && !dlcs && allAppids.length > 0) {
+    games = allAppids.length;
+  }
+  
+  return { games, dlcs };
+}
 // ── Formatting ────────────────────────────────────────────────────────────────
 
 // Vraci jen cislo (v MB), bez jednotky - napr. "100.9"
@@ -701,29 +802,59 @@ async function fetchImageDataUrl(url) {
 
 function setText(id, val) {
   const el = document.getElementById(id);
-  if (el) el.textContent = val;
+  if (el) {
+    el.textContent = val;
+    console.log(`setText("${id}", "${val}") OK`);
+  } else {
+    console.warn(`setText("${id}") - element not found`);
+  }
+}
+
+function setAttr(id, attr, val) {
+  const el = document.getElementById(id);
+  if (el) {
+    el[attr] = val;
+    console.log(`setAttr("${id}", "${attr}", "${val}") OK`);
+  } else {
+    console.warn(`setAttr("${id}") - element not found`);
+  }
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 async function init() {
+  console.log('=== INIT STARTED ===');
+  
   let config = {};
   try {
+    console.log('Loading config.json...');
     const text = await loadFile('config.json');
-    config = JSON.parse(cleanJson(text));
+    console.log('Config text loaded, length:', text.length);
+    config = parseConfigText(text);
+    console.log('Config parsed:', config);
   } catch(e) {
-    console.warn('Config failed:', e);
+    console.error('Config load failed:', e.message);
   }
+  
+  console.log('Looking for DOM elements...');
+  const heroImg   = document.getElementById('hero-img');
+  const navImg    = document.getElementById('nav-brand-img');
+  const navIcon   = document.getElementById('nav-brand-icon');
+  const dlIconImg = document.getElementById('dl-icon-img');
+  const dlIconSvg = document.getElementById('dl-icon-svg');
+  
+  console.log('DOM elements found:', { heroImg: !!heroImg, navImg: !!navImg, dlIconImg: !!dlIconImg });
 
   // Show version badge, ensure it starts with 'v'
   const verRaw = config.version || null;
   const ver = verRaw ? (String(verRaw).trim().toLowerCase().startsWith('v') ? String(verRaw).trim() : 'v' + String(verRaw).trim()) : 'v?';
-  // set version early
   setText('nav-version', ver);
+  console.log('Version set:', ver);
 
-  // owner/team next
-  setText('footer-owner', config.creditowner || '');
-  setText('footer-team',  config.creditteam  || '');
+  // owner/team
+  setText('footer-owner', config.creditowner || '...');
+  setText('footer-team', config.creditteam || '...');
+  console.log('Owner/Team set:', config.creditowner, config.creditteam);
 
   // Normalize and apply URLs from config
   if (config.githuburl) {
@@ -747,26 +878,51 @@ async function init() {
     if (btn) btn.href = dl;
   }
 
-  // images: fetch as data URLs into RAM and apply
   if (config.webimageurl) {
     const rawImg = toRawUrl(config.webimageurl);
-    const dataUrl = await fetchImageDataUrl(rawImg);
-    if (dataUrl) applyImage(dataUrl, heroImg, navImg, dlIconImg);
-    else if (rawImg) applyImage(rawImg, heroImg, navImg, dlIconImg);
-  } else {
-    if (heroSkel) heroSkel.style.display = 'none';
-  }
-
-  const heroImg   = document.getElementById('hero-img');
-  const heroSkel  = document.getElementById('hero-img-skeleton');
-  const navImg    = document.getElementById('nav-brand-img');
-  const dlIconImg = document.getElementById('dl-icon-img');
-
-  if (config.webimageurl) {
-    const rawImg = toRawUrl(config.webimageurl);
-    applyImage(rawImg, heroImg, navImg, dlIconImg);
-  } else {
-    if (heroSkel) heroSkel.style.display = 'none';
+    console.log('Loading image from:', rawImg);
+    
+    if (heroImg) {
+      heroImg.onload = () => { 
+        heroImg.style.display = 'block';
+        heroImg.style.opacity = '1'; 
+        console.log('Hero image loaded');
+      };
+      heroImg.onerror = () => { 
+        heroImg.style.display = 'none';
+        heroImg.style.opacity = '0.3'; 
+        console.warn('Hero image failed to load');
+      };
+      heroImg.src = rawImg;
+    }
+    
+    if (navImg) {
+      navImg.onload = () => {
+        console.log('Nav image loaded');
+        if (navIcon) navIcon.style.display = 'none';
+        navImg.style.display = 'inline-block';
+      };
+      navImg.onerror = () => {
+        console.warn('Nav image failed');
+        if (navIcon) navIcon.style.display = 'inline-block';
+        navImg.style.display = 'none';
+      };
+      navImg.src = rawImg;
+    }
+    
+    if (dlIconImg) {
+      dlIconImg.onload = () => {
+        console.log('DL icon image loaded');
+        dlIconImg.classList.add('loaded');
+        if (dlIconSvg) dlIconSvg.style.display = 'none';
+      };
+      dlIconImg.onerror = () => {
+        console.warn('DL icon image failed');
+        dlIconImg.classList.remove('loaded');
+        if (dlIconSvg) dlIconSvg.style.display = 'block';
+      };
+      dlIconImg.src = rawImg;
+    }
   }
   // Pokusime se nacist games.json a zapnout pocitadla her a DLC
   try {
@@ -784,8 +940,14 @@ async function init() {
     }
     const gamesList = parseGames(gamesText || '');
     const counts = countAll(gamesList || []);
-    setText('stat-games', String(counts.games));
-    setText('stat-dlcs',  String(counts.dlcs));
+    if ((!counts.games && !counts.dlcs) && gamesText) {
+      const rawCounts = countGamesFromRaw(gamesText);
+      setText('stat-games', String(rawCounts.games));
+      setText('stat-dlcs', String(rawCounts.dlcs));
+    } else {
+      setText('stat-games', String(counts.games));
+      setText('stat-dlcs', String(counts.dlcs));
+    }
 
     // Spocteme pribliznou celkovou velikost pokud jsou v datech velikosti
     let totalBytes = 0;
