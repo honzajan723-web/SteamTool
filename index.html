@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SteamTool</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1a1a24;
+      --border: #2a2a3a;
+      --accent: #7c5cbf;
+      --accent-light: #9b7fe0;
+      --accent-btn: #6b47c8;
+      --text: #e8e8f0;
+      --muted: #888898;
+      --green: #4caf7d;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* NAV */
+    nav {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 28px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.05rem;
+    }
+    .nav-brand-img {
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      object-fit: cover;
+      display: none;
+    }
+    .nav-brand-icon { width: 28px; height: 28px; }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    .nav-icon-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px; height: 34px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      text-decoration: none;
+      transition: border-color .2s, color .2s;
+    }
+    .nav-icon-btn:hover { border-color: var(--accent-light); color: var(--accent-light); }
+    .nav-icon-btn svg { width: 17px; height: 17px; }
+    .version-badge {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: .8rem;
+      color: var(--muted);
+    }
+
+    /* MAIN SCROLL AREA */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 20px 24px 0;
+    }
+
+    /* HERO */
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding-bottom: 18px;
+    }
+    .hero-logo {
+      width: 76px; height: 76px;
+      border-radius: 18px;
+      margin-bottom: 14px;
+      object-fit: cover;
+      display: none;
+    }
+    .hero-logo-skeleton {
+      width: 76px; height: 76px;
+      border-radius: 18px;
+      margin-bottom: 14px;
+    }
+    .hero h1 {
+      font-size: 2.1rem;
+      font-weight: 800;
+      margin-bottom: 7px;
+    }
+    .hero p {
+      color: var(--muted);
+      font-size: .93rem;
+      max-width: 360px;
+      line-height: 1.5;
+    }
+
+    /* STATS ROW */
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding-bottom: 16px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 22px;
+      text-align: center;
+      min-width: 120px;
+    }
+    .stat-card .val {
+      font-size: 1.25rem;
+      font-weight: 700;
+      display: block;
+    }
+    .stat-card .lbl {
+      font-size: .74rem;
+      color: var(--muted);
+      margin-top: 2px;
+      display: block;
+    }
+
+    /* DOWNLOAD CARD */
+    .dl-wrap {
+      display: flex;
+      justify-content: center;
+      padding-bottom: 16px;
+    }
+    .dl-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px 20px;
+      width: 100%;
+      max-width: 520px;
+    }
+    .dl-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .dl-icon {
+      width: 42px; height: 42px;
+      border-radius: 10px;
+      overflow: hidden;
+      flex-shrink: 0;
+      background: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .dl-icon img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+    .dl-icon svg { width: 22px; height: 22px; color: #fff; }
+    .dl-meta { flex: 1; }
+    .dl-meta .name { font-weight: 600; font-size: .95rem; }
+    .dl-meta .sub {
+      font-size: .75rem;
+      color: var(--muted);
+      margin-top: 3px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+    .verified { color: var(--green); display: flex; align-items: center; gap: 3px; }
+    .verified svg { width: 12px; height: 12px; }
+    .btn-download {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 12px;
+      background: var(--accent-btn);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: .95rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background .2s, transform .1s;
+    }
+    .btn-download:hover { background: var(--accent-light); }
+    .btn-download:active { transform: scale(.98); }
+    .btn-download svg { width: 17px; height: 17px; }
+
+    /* FEATURES */
+    .features {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding-bottom: 18px;
+    }
+    .feat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 18px 14px;
+      width: 190px;
+    }
+    .feat-icon {
+      width: 32px; height: 32px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 10px;
+    }
+    .feat-icon svg { width: 16px; height: 16px; color: var(--accent-light); }
+    .feat-card h3 { font-size: .85rem; font-weight: 700; margin-bottom: 5px; }
+    .feat-card p { font-size: .74rem; color: var(--muted); line-height: 1.45; }
+
+    /* FOOTER */
+    footer {
+      flex-shrink: 0;
+      border-top: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .footer-copy { font-size: .76rem; color: var(--muted); }
+    .footer-discord {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      background: #5865f2;
+      border: none;
+      border-radius: 8px;
+      padding: 7px 13px;
+      color: #fff;
+      font-size: .82rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background .2s;
+    }
+    .footer-discord:hover { background: #4752c4; }
+    .footer-discord svg { width: 18px; height: 18px; }
+
+    /* Skeleton */
+    .skeleton {
+      display: inline-block;
+      background: linear-gradient(90deg, var(--surface2) 25%, var(--border) 50%, var(--surface2) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 4px;
+      min-width: 40px;
+    }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-brand">
+      <img id="nav-brand-img" class="nav-brand-img" src="" alt="" />
+      <svg id="nav-brand-icon" class="nav-brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+      </svg>
+      SteamTool
+    </div>
+    <div class="nav-right">
+      <a id="nav-github" href="#" class="nav-icon-btn" title="GitHub" target="_blank" rel="noopener noreferrer">
+        <!-- GitHub mark -->
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/>
+        </svg>
+      </a>
+      <a id="nav-discord" href="#" class="nav-icon-btn" title="Discord" target="_blank" rel="noopener noreferrer">
+        <!-- Real Discord Clyde logo -->
+        <svg viewBox="0 0 127.14 96.36" fill="currentColor">
+          <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/>
+        </svg>
+      </a>
+      <span class="version-badge" id="nav-version"><span class="skeleton" style="width:36px;height:12px;"></span></span>
+    </div>
+  </nav>
+
+  <!-- SCROLLABLE CONTENT -->
+  <div class="main">
+    <div class="content">
+
+      <!-- HERO -->
+      <div class="hero">
+        <img id="hero-img" class="hero-logo" src="" alt="SteamTool" />
+        <div id="hero-img-skeleton" class="hero-logo-skeleton skeleton"></div>
+        <h1>SteamTool</h1>
+        <p>The free toolkit that keeps your Steam library running smoothly.</p>
+      </div>
+
+      <!-- STATS -->
+      <div class="stats">
+        <div class="stat-card">
+          <span class="val" id="stat-games"><span class="skeleton" style="width:56px;height:20px;"></span></span>
+          <span class="lbl">Games Available</span>
+        </div>
+        <div class="stat-card">
+          <span class="val" id="stat-dlcs"><span class="skeleton" style="width:44px;height:20px;"></span></span>
+          <span class="lbl">DLCs Available</span>
+        </div>
+        <div class="stat-card">
+          <span class="val">Free</span>
+          <span class="lbl">Always &amp; open</span>
+        </div>
+        <div class="stat-card">
+          <span class="val" id="stat-size"><span class="skeleton" style="width:52px;height:20px;"></span></span>
+          <span class="lbl">Lightweight</span>
+        </div>
+      </div>
+
+      <!-- DOWNLOAD CARD -->
+      <div class="dl-wrap">
+        <div class="dl-card">
+          <div class="dl-info">
+            <div class="dl-icon" id="dl-icon">
+              <!-- image injected by JS; fallback wrench icon -->
+              <img id="dl-icon-img" src="" alt="" />
+              <svg id="dl-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+              </svg>
+            </div>
+            <div class="dl-meta">
+              <div class="name">SteamTool.exe</div>
+              <div class="sub">
+                <span id="dl-size"><span class="skeleton" style="width:52px;height:12px;"></span></span>
+                <span>·</span>
+                <span id="dl-date"><span class="skeleton" style="width:76px;height:12px;"></span></span>
+                <span>·</span>
+                <span class="verified">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  Verified
+                </span>
+                <span>·</span>
+                <span>Windows 10 / 11</span>
+              </div>
+            </div>
+          </div>
+          <a id="btn-download" href="#" class="btn-download">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download
+          </a>
+        </div>
+      </div>
+
+      <!-- FEATURES -->
+      <div class="features">
+        <div class="feat-card">
+          <div class="feat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+          </div>
+          <h3>Game Fixes</h3>
+          <p>One-click fixes for thousands of Steam titles, updated regularly.</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+          </div>
+          <h3>Portable</h3>
+          <p>No installation needed. Under 100 MB, runs anywhere.</p>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          <h3>Secure</h3>
+          <p>GitHub-hosted builds, verified and signed on every release.</p>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+
+    <!-- FOOTER -->
+    <footer>
+      <span class="footer-copy">© 2026 SteamTool · by <span id="footer-owner">...</span> &amp; Team <span id="footer-team">...</span></span>
+      <a id="footer-discord" href="#" class="footer-discord" target="_blank" rel="noopener noreferrer">
+        <!-- Real Discord Clyde logo -->
+        <svg viewBox="0 0 127.14 96.36" fill="currentColor">
+          <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/>
+        </svg>
+        Discord
+      </a>
+    </footer>
+  </div><!-- /main -->
+
+<script>
+// jsDelivr má vždy CORS povolený pro GitHub soubory
+const CDN = 'https://cdn.jsdelivr.net/gh/honzajan722/SteamTool@main';
+const GH  = 'https://api.github.com/repos/honzajan722/SteamTool';
+
+async function loadText(url) {
+  const r = await fetch(url, { cache: 'no-cache' });
+  if (!r.ok) throw new Error(`HTTP ${r.status}: ${url}`);
+  return r.text();
+}
+
+// ── JSON parsing ──────────────────────────────────────────────────────────────
+
+function cleanJson(s) {
+  s = s.replace(/\/\/[^
+]*/g, '');        // strip // comments
+  s = s.replace(/,(\s*[}\]])/g, '$1');     // trailing commas
+  return s;
+}
+
+// Extracts an array of game objects from games.json
+// The file may be an array OR a single object OR invalid JSON with bare {} in dlc
+function parseGames(text) {
+  const s = cleanJson(text);
+
+  // Try direct parse
+  try {
+    const p = JSON.parse(s);
+    if (Array.isArray(p)) return p;
+    if (p && typeof p === 'object') return [p];
+  } catch(_) {}
+
+  // Manual extraction: each top-level { … } is one game entry
+  const out = [];
+  let depth = 0, start = -1;
+  for (let i = 0; i < s.length; i++) {
+    if      (s[i] === '{') { if (!depth) start = i; depth++; }
+    else if (s[i] === '}') {
+      depth--;
+      if (!depth && start !== -1) {
+        const chunk = s.slice(start, i + 1);
+        // Fix invalid "dlc": { {…} } → "dlc": [{…}]
+        const fixed = chunk.replace(/"dlc"\s*:\s*\{(\s*\{)/g, '"dlc":[$1')
+                           .replace(/\}\s*\},/g, '}},');
+        try       { out.push(JSON.parse(cleanJson(fixed))); }
+        catch(_)  { try { out.push(JSON.parse(cleanJson(chunk))); } catch(__) {} }
+        start = -1;
+      }
+    }
+  }
+  return out;
+}
+
+// ── Formatting ────────────────────────────────────────────────────────────────
+
+function fmtMB(bytes) {
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function fmtDate(iso) {
+  const d = new Date(iso);
+  const day   = d.getUTCDate();
+  const month = d.toLocaleString('en-US', { month: 'long', timeZone: 'UTC' });
+  const year  = d.getUTCFullYear();
+  return `${day} ${month} ${year}`;
+}
+
+// ── Release info ──────────────────────────────────────────────────────────────
+
+async function fetchReleaseInfo(downloadUrl) {
+  const m = downloadUrl.match(/\/releases\/download\/[^\/]+\/(.+)$/i);
+  const filename = m ? m[1].toLowerCase() : null;
+
+  for (const url of [`${GH}/releases/latest`, `${GH}/releases?per_page=20`]) {
+    try {
+      const r = await fetch(url, { headers: { Accept: 'application/vnd.github+json' } });
+      if (!r.ok) continue;
+      const data = await r.json();
+      for (const rel of (Array.isArray(data) ? data : [data])) {
+        if (!rel.assets?.length) continue;
+        const asset = filename
+          ? rel.assets.find(a => a.name.toLowerCase() === filename)
+          : rel.assets.find(a => a.name.toLowerCase().endsWith('.exe'));
+        if (asset?.size) {
+          return { size: fmtMB(asset.size), date: fmtDate(asset.updated_at || asset.created_at || rel.published_at) };
+        }
+      }
+    } catch(_) {}
+  }
+  return { size: null, date: null };
+}
+
+// ── Count games & DLCs ────────────────────────────────────────────────────────
+
+function hasId(v) { return v !== null && v !== undefined && String(v).trim() !== ''; }
+
+function countAll(list) {
+  let games = 0, dlcs = 0;
+  for (const g of list) {
+    if (hasId(g.appid)) games++;
+    if (!g.dlc) continue;
+    for (const d of (Array.isArray(g.dlc) ? g.dlc : [g.dlc])) {
+      if (d && hasId(d.appid)) dlcs++;
+    }
+  }
+  return { games, dlcs };
+}
+
+// ── Image via jsDelivr ────────────────────────────────────────────────────────
+
+function applyImage(githubBlobUrl, ...imgEls) {
+  if (!githubBlobUrl) return;
+  // Convert github.com/owner/repo/blob/branch/path → jsDelivr URL
+  let cdnUrl = githubBlobUrl;
+  const bm = githubBlobUrl.match(/github\.com\/([^\/]+)\/([^\/]+)\/blob\/([^\/]+)\/(.+)/);
+  if (bm) {
+    const [, owner, repo, branch, path] = bm;
+    cdnUrl = `https://cdn.jsdelivr.net/gh/${owner}/${repo}@${branch}/${path}`;
+  }
+  for (const el of imgEls) {
+    el.onload  = () => { el.style.display = 'block'; };
+    el.onerror = () => {};
+    el.src = cdnUrl;
+  }
+  // Hide skeletons once first image loads
+  const skel = document.getElementById('hero-img-skeleton');
+  imgEls[0].onload = () => {
+    imgEls[0].style.display = 'block';
+    if (skel) skel.style.display = 'none';
+    const navIcon = document.getElementById('nav-brand-icon');
+    if (navIcon) navIcon.style.display = 'none';
+    const dlSvg = document.getElementById('dl-icon-svg');
+    if (dlSvg) dlSvg.style.display = 'none';
+  };
+}
+
+// ── Set element text safely ───────────────────────────────────────────────────
+
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+// ── Main ──────────────────────────────────────────────────────────────────────
+
+async function init() {
+  // Config via jsDelivr
+  let config = {};
+  try {
+    const text = await loadText(`${CDN}/config.json`);
+    config = JSON.parse(cleanJson(text));
+  } catch(e) {
+    console.warn('Config failed:', e);
+    // jsDelivr failed — try GitHub API as fallback
+    try {
+      const r = await fetch(`${GH}/contents/config.json`, { headers: { Accept: 'application/vnd.github+json' } });
+      const j = await r.json();
+      config = JSON.parse(cleanJson(atob(j.content.replace(/
+/g, ''))));
+    } catch(e2) { console.warn('Config fallback also failed:', e2); }
+  }
+
+  // Version badge
+  setText('nav-version', config.version || 'v?');
+
+  // Links
+  if (config.githuburl)  document.getElementById('nav-github').href    = config.githuburl;
+  if (config.discordurl) {
+    document.getElementById('nav-discord').href    = config.discordurl;
+    document.getElementById('footer-discord').href = config.discordurl;
+  }
+  if (config.downloadurl) document.getElementById('btn-download').href = config.downloadurl;
+
+  // Credits
+  setText('footer-owner', config.creditowner || '');
+  setText('footer-team',  config.creditteam  || '');
+
+  // Images (hero + nav + dl icon all use same source)
+  const heroImg   = document.getElementById('hero-img');
+  const heroSkel  = document.getElementById('hero-img-skeleton');
+  const navImg    = document.getElementById('nav-brand-img');
+  const dlIconImg = document.getElementById('dl-icon-img');
+
+  if (config.webimageurl) {
+    applyImage(config.webimageurl, heroImg, navImg, dlIconImg);
+  } else {
+    if (heroSkel) heroSkel.style.display = 'none';
+  }
+
+  // Release size + date
+  if (config.downloadurl) {
+    const { size, date } = await fetchReleaseInfo(config.downloadurl);
+    setText('dl-size',   size || '—');
+    setText('dl-date',   date || '—');
+    setText('stat-size', size || '—');
+  } else {
+    ['dl-size','dl-date','stat-size'].forEach(id => setText(id, '—'));
+  }
+
+  // Games + DLCs
+  let gamesList = [];
+  const gamesPath = (() => {
+    if (!config.availablegamesurl) return 'games.json';
+    const m = config.availablegamesurl.match(/\/blob\/[^\/]+\/(.+)$/);
+    return m ? m[1] : 'games.json';
+  })();
+
+  try {
+    const text = await loadText(`${CDN}/${gamesPath}`);
+    gamesList = parseGames(text);
+  } catch(e) {
+    console.warn('Games via jsDelivr failed:', e);
+    // GitHub API fallback
+    try {
+      const r = await fetch(`${GH}/contents/${gamesPath}`, { headers: { Accept: 'application/vnd.github+json' } });
+      const j = await r.json();
+      gamesList = parseGames(atob(j.content.replace(/
+/g, '')));
+    } catch(e2) { console.warn('Games fallback also failed:', e2); }
+  }
+
+  const { games, dlcs } = countAll(gamesList);
+  setText('stat-games', games.toLocaleString());
+  setText('stat-dlcs',  dlcs.toLocaleString());
+}
+
+init().catch(console.error);
+</script>
+</body>
+</html>
