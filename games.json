@@ -1,0 +1,17 @@
+[
+    {
+        "appid": "",
+        "name": "x",
+        "release_date": "",
+        "updated_date": "",
+        "type": "game",
+        "tags": [
+          ""
+        ],
+        "denuvo": false,
+        "launcher": false,
+        "dlc": {
+          "x":"x"
+        },
+        "header_image": "https://cdn.akamai.steamstatic.com/steam/apps//header.jpg"
+    },
