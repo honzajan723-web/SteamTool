@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SteamTool</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/honzajan722/SteamTool/main/SteamTool.png">
+  <style>
+    :root {
+      --bg: #050509;
+      --bg-alt: #0b0b12;
+      --accent: #7b3cff;
+      --accent2: #ff4b81;
+      --text: #ffffff;
+      --muted: #a0a0b8;
+      --border: #26263a;
+      --success: #4bffb0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #141428 0, #050509 45%, #000000 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+    .page {
+      width: 100%;
+      max-width: 900px;
+      background: linear-gradient(145deg, #050509 0, #0b0b12 40%, #050509 100%);
+      border-radius: 24px;
+      border: 1px solid #1a1a2a;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.75);
+      padding: 24px 28px 28px;
+      position: relative;
+      overflow: hidden;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 12px;
+      background-image: url("https://raw.githubusercontent.com/honzajan722/SteamTool/main/SteamTool.png");
+      background-size: cover;
+      background-position: center;
+    }
+    .brand-title {
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      font-size: 16px;
+    }
+    .brand-subtitle {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+    .header-version {
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(5,5,9,0.8);
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .hero {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .hero-logo {
+      width: 96px;
+      height: 96px;
+      border-radius: 24px;
+      background-image: url("https://raw.githubusercontent.com/honzajan722/SteamTool/main/SteamTool.png");
+      background-size: cover;
+      background-position: center;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.8);
+      margin: 0 auto 14px;
+    }
+    .hero-title {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .hero-tagline {
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .stats-row {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin: 28px 0;
+      flex-wrap: wrap;
+    }
+    .stat-card {
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: rgba(11,11,18,0.95);
+      border: 1px solid rgba(38,38,58,0.9);
+      width: 180px;
+      text-align: left;
+    }
+    .stat-value {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .stat-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+    }
+    .download-card {
+      width: 100%;
+      max-width: 640px;
+      margin: 0 auto 26px;
+      padding: 16px 18px;
+      border-radius: 16px;
+      background: rgba(11,11,18,0.95);
+      border: 1px solid rgba(38,38,58,0.9);
+      box-shadow: 0 18px 40px rgba(0,0,0,0.7);
+    }
+    .download-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .download-name {
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .download-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .badge-verified {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(75,255,176,0.7);
+      color: var(--success);
+      background: rgba(5,20,12,0.9);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+    .btn-ghost {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(5,5,9,0.9);
+      color: var(--muted);
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .btn-ghost:hover {
+      border-color: rgba(123,60,255,0.7);
+      color: var(--text);
+    }
+    .download-meta {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .download-meta span {
+      color: var(--text);
+    }
+    .download-bar {
+      width: 100%;
+      height: 40px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.8);
+    }
+    .download-bar:hover {
+      filter: brightness(1.05);
+    }
+    .features-row {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    .feature-card {
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(11,11,18,0.95);
+      border: 1px solid rgba(38,38,58,0.9);
+      width: 180px;
+      text-align: left;
+    }
+    .feature-title {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .feature-body {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 10px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(26,26,42,0.9);
+      font-size: 11px;
+      color: var(--muted);
+      flex-wrap: wrap;
+    }
+    .footer-left span {
+      white-space: nowrap;
+    }
+    .footer-dot::before {
+      content: "·";
+      margin: 0 4px;
+      color: var(--muted);
+    }
+    .btn-discord {
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(123,60,255,0.7);
+      background: rgba(123,60,255,0.25);
+      color: #ffffff;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .btn-discord:hover {
+      background: rgba(123,60,255,0.4);
+    }
+    @media (max-width: 700px) {
+      header { padding: 16px 18px; }
+      .page { padding: 18px 16px 20px; }
+      .download-card { padding: 14px 14px; }
+      .download-header { flex-direction: column; align-items: flex-start; gap: 6px; }
+      footer { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div class="brand">
+        <div class="brand-logo"></div>
+        <div>
+          <div class="brand-title">SteamTool</div>
+          <div class="brand-subtitle">Steam library toolkit</div>
+        </div>
+      </div>
+      <div class="header-version" id="versionBadge"></div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-logo"></div>
+      <div class="hero-title">SteamTool</div>
+      <div class="hero-tagline">The free toolkit that keeps your Steam library running smoothly.</div>
+    </section>
+
+    <section class="stats-row">
+      <div class="stat-card">
+        <div class="stat-value" id="gamesAvailable">0</div>
+        <div class="stat-label">Games available</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="dlcsAvailable">0</div>
+        <div class="stat-label">DLCs available</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">Free</div>
+        <div class="stat-label">Always & open</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="exeSize">Unknown</div>
+        <div class="stat-label">Executable size</div>
+      </div>
+    </section>
+
+    <section class="download-card">
+      <div class="download-header">
+        <div class="download-name">SteamTool.exe</div>
+        <div class="download-right">
+          <div class="badge-verified">Verified</div>
+          <button class="btn-ghost" id="githubBtn">GitHub</button>
+        </div>
+      </div>
+      <div class="download-meta">
+        <span id="metaSize">Unknown size</span> ·
+        <span id="metaDate">Unknown date</span> ·
+        Windows 10 / 11
+      </div>
+      <div class="download-bar" id="downloadBtn">Download</div>
+    </section>
+
+    <section class="features-row">
+      <div class="feature-card">
+        <div class="feature-title">Game Fixes</div>
+        <div class="feature-body">
+          One-click fixes for thousands of Steam titles, updated regularly.
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-title">Portable</div>
+        <div class="feature-body" id="portableText">
+          No installation needed. Under 80 MB, runs anywhere.
+        </div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-title">Secure</div>
+        <div class="feature-body">
+          GitHub-hosted builds, transparent releases and versioned updates.
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="footer-left">
+        <span>© Since 2026 SteamTool</span>
+        <span class="footer-dot"></span>
+        <span>by team <span id="creditTeam">-</span></span>
+        <span class="footer-dot"></span>
+        <span>by <span id="creditOwner">-</span></span>
+      </div>
+      <button class="btn-discord" id="discordBtn">Discord</button>
+    </footer>
+  </div>
+
+  <script>
+    const CONFIG_URL = "https://raw.githubusercontent.com/honzajan722/SteamTool/main/config.json";
+    const RELEASE_API = "https://api.github.com/repos/honzajan722/SteamTool/releases/latest";
+
+    const versionBadge = document.getElementById("versionBadge");
+    const gamesAvailableEl = document.getElementById("gamesAvailable");
+    const dlcsAvailableEl = document.getElementById("dlcsAvailable");
+    const exeSizeEl = document.getElementById("exeSize");
+    const metaSizeEl = document.getElementById("metaSize");
+    const metaDateEl = document.getElementById("metaDate");
+    const creditTeamEl = document.getElementById("creditTeam");
+    const creditOwnerEl = document.getElementById("creditOwner");
+    const portableTextEl = document.getElementById("portableText");
+
+    const downloadBtn = document.getElementById("downloadBtn");
+    const githubBtn = document.getElementById("githubBtn");
+    const discordBtn = document.getElementById("discordBtn");
+
+    let downloadUrl = null;
+    let githubUrl = null;
+    let discordUrl = null;
+
+    function toRawUrl(url) {
+      if (!url) return null;
+      if (url.includes("raw.githubusercontent.com")) return url;
+      if (url.includes("github.com") && url.includes("/blob/")) {
+        return url.replace("https://github.com/", "https://raw.githubusercontent.com/").replace("/blob/", "/");
+      }
+      return url;
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return "Unknown date";
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return "Unknown date";
+      return d.toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    }
+
+    function formatSize(bytes) {
+      if (typeof bytes !== "number" || !isFinite(bytes) || bytes <= 0) {
+        return { label: "Unknown size", mb: null, isGB: false };
+      }
+      const mb = bytes / (1024 * 1024);
+      if (mb >= 1024) {
+        const gb = mb / 1024;
+        return { label: gb.toFixed(2) + " GB", mb, isGB: true };
+      }
+      return { label: mb.toFixed(1) + " MB", mb, isGB: false };
+    }
+
+    function applyPortableText(sizeInfo) {
+      if (!sizeInfo || sizeInfo.mb == null) {
+        portableTextEl.textContent = "No installation needed. Under 80 MB, runs anywhere.";
+        return;
+      }
+      if (sizeInfo.isGB || sizeInfo.mb >= 100) {
+        portableTextEl.textContent = "Portable build with a larger footprint. Runs without installation and keeps data self-contained.";
+      } else {
+        portableTextEl.textContent = "No installation needed. Under 80 MB, runs anywhere.";
+      }
+    }
+
+    async function loadConfigAndGames() {
+      try {
+        const res = await fetch(CONFIG_URL, { cache: "no-store" });
+        const cfg = await res.json();
+
+        versionBadge.textContent = cfg.version || "";
+        creditTeamEl.textContent = cfg.creditteam || "-";
+        creditOwnerEl.textContent = cfg.creditowner || "-";
+
+        githubUrl = cfg.githuburl || null;
+        discordUrl = cfg.discordurl || null;
+
+        const gamesUrl = toRawUrl(cfg.availablegamesurl) ||
+          "https://raw.githubusercontent.com/honzajan722/SteamTool/main/games.json";
+
+        const gres = await fetch(gamesUrl, { cache: "no-store" });
+        const games = await gres.json();
+
+        let gameCount = 0;
+        let dlcCount = 0;
+
+        if (Array.isArray(games)) {
+          for (const g of games) {
+            if (g && g.type === "game" && g.appid && String(g.appid).trim() !== "") {
+              gameCount++;
+            }
+            if (g && g.dlc) {
+              if (Array.isArray(g.dlc)) {
+                for (const d of g.dlc) {
+                  if (d && d.appid && String(d.appid).trim() !== "") dlcCount++;
+                }
+              } else if (typeof g.dlc === "object") {
+                for (const key in g.dlc) {
+                  const d = g.dlc[key];
+                  if (d && d.appid && String(d.appid).trim() !== "") dlcCount++;
+                }
+              }
+            }
+          }
+        }
+
+        gamesAvailableEl.textContent = gameCount.toLocaleString();
+        dlcsAvailableEl.textContent = dlcCount.toLocaleString();
+
+        // fallback download URL z configu, pokud release asset nebude
+        downloadUrl = cfg.downloadurl || downloadUrl;
+      } catch (e) {
+        console.error("Config/Games error:", e);
+      }
+    }
+
+    async function loadReleaseInfo() {
+      try {
+        const res = await fetch(RELEASE_API, { cache: "no-store" });
+        const rel = await res.json();
+
+        const published = rel.published_at || rel.created_at;
+        metaDateEl.textContent = formatDate(published);
+
+        let assetSizeBytes = null;
+        let assetDownload = null;
+
+        if (Array.isArray(rel.assets)) {
+          const exeAsset = rel.assets.find(a =>
+            a && typeof a.name === "string" &&
+            a.name.toLowerCase().includes("steamtool") &&
+            a.name.toLowerCase().endsWith(".exe")
+          );
+          if (exeAsset) {
+            if (typeof exeAsset.size === "number") {
+              assetSizeBytes = exeAsset.size;
+            }
+            if (typeof exeAsset.browser_download_url === "string") {
+              assetDownload = exeAsset.browser_download_url;
+            }
+          }
+        }
+
+        const sizeInfo = formatSize(assetSizeBytes);
+        metaSizeEl.textContent = sizeInfo.label;
+        exeSizeEl.textContent = sizeInfo.label;
+        applyPortableText(sizeInfo);
+
+        if (assetDownload) {
+          downloadUrl = assetDownload;
+        }
+      } catch (e) {
+        console.error("Release error:", e);
+        metaDateEl.textContent = "Unknown date";
+        metaSizeEl.textContent = "Unknown size";
+        exeSizeEl.textContent = "Unknown";
+        applyPortableText(null);
+      }
+    }
+
+    function wireButtons() {
+      downloadBtn.addEventListener("click", () => {
+        if (downloadUrl) {
+          window.location.href = downloadUrl;
+        }
+      });
+      githubBtn.addEventListener("click", () => {
+        if (githubUrl) {
+          window.open(githubUrl, "_blank", "noopener");
+        }
+      });
+      discordBtn.addEventListener("click", () => {
+        if (discordUrl) {
+          window.open(discordUrl, "_blank", "noopener");
+        }
+      });
+    }
+
+    async function refreshAll() {
+      await Promise.all([loadConfigAndGames(), loadReleaseInfo()]);
+    }
+
+    (async () => {
+      wireButtons();
+      await refreshAll();
+      setInterval(refreshAll, 1000);
+    })();
+  </script>
+</body>
+</html>
