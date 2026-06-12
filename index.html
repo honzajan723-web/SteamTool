@@ -461,6 +461,9 @@ async function tryFetch(url) {
   return r.text();
 }
 
+// In-memory cache to avoid further network after init
+const CACHE = { config: null, games: null, release: null, images: {} };
+
 // GitHub Contents API pres fetch
 async function loadViaGHApi(path) {
   const r = await fetch(
@@ -664,21 +667,34 @@ function countAll(list) {
 // ── Image ──────────────────────────────────────────────────────────────────────
 
 function applyImage(url, ...imgEls) {
+  // kept for backward-compat; prefer fetchImageDataUrl for caching
   if (!url) return;
   for (const el of imgEls) {
     el.onload  = () => { el.style.display = 'block'; };
     el.onerror = () => {};
     el.src = url;
   }
-  const skel = document.getElementById('hero-img-skeleton');
-  imgEls[0].onload = () => {
-    imgEls[0].style.display = 'block';
-    if (skel) skel.style.display = 'none';
-    const navIcon = document.getElementById('nav-brand-icon');
-    if (navIcon) navIcon.style.display = 'none';
-    const dlSvg = document.getElementById('dl-icon-svg');
-    if (dlSvg) dlSvg.style.display = 'none';
-  };
+}
+
+async function fetchImageDataUrl(url) {
+  if (!url) return null;
+  if (CACHE.images[url]) return CACHE.images[url];
+  try {
+    const r = await fetch(url, { cache: 'no-cache', mode: 'cors' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const blob = await r.blob();
+    const dataUrl = await new Promise((res, rej) => {
+      const fr = new FileReader();
+      fr.onload = () => res(fr.result);
+      fr.onerror = () => res(null);
+      fr.readAsDataURL(blob);
+    });
+    if (dataUrl) CACHE.images[url] = dataUrl;
+    return dataUrl;
+  } catch (e) {
+    console.warn('fetchImageDataUrl failed for', url, e);
+    return null;
+  }
 }
 
 // ── Set element text safely ───────────────────────────────────────────────────
@@ -702,7 +718,12 @@ async function init() {
   // Show version badge, ensure it starts with 'v'
   const verRaw = config.version || null;
   const ver = verRaw ? (String(verRaw).trim().toLowerCase().startsWith('v') ? String(verRaw).trim() : 'v' + String(verRaw).trim()) : 'v?';
+  // set version early
   setText('nav-version', ver);
+
+  // owner/team next
+  setText('footer-owner', config.creditowner || '');
+  setText('footer-team',  config.creditteam  || '');
 
   // Normalize and apply URLs from config
   if (config.githuburl) {
@@ -726,8 +747,15 @@ async function init() {
     if (btn) btn.href = dl;
   }
 
-  setText('footer-owner', config.creditowner || '');
-  setText('footer-team',  config.creditteam  || '');
+  // images: fetch as data URLs into RAM and apply
+  if (config.webimageurl) {
+    const rawImg = toRawUrl(config.webimageurl);
+    const dataUrl = await fetchImageDataUrl(rawImg);
+    if (dataUrl) applyImage(dataUrl, heroImg, navImg, dlIconImg);
+    else if (rawImg) applyImage(rawImg, heroImg, navImg, dlIconImg);
+  } else {
+    if (heroSkel) heroSkel.style.display = 'none';
+  }
 
   const heroImg   = document.getElementById('hero-img');
   const heroSkel  = document.getElementById('hero-img-skeleton');
