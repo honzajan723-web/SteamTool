@@ -592,6 +592,28 @@ function fmtDate(iso) {
   return `${day} ${month} ${year}`;
 }
 
+// Pokus se rozparsovat ruzne representationy velikosti na bajty
+function toBytes(v) {
+  if (v == null) return null;
+  if (typeof v === 'number' && isFinite(v)) return v;
+  if (typeof v === 'string') {
+    const s = v.trim();
+    // "100 MB", "1.5GB", "1024" etc.
+    const m = s.match(/([\d.,]+)\s*(B|KB|MB|GB|TB)?/i);
+    if (!m) return null;
+    let num = parseFloat(m[1].replace(/,/g, '.'));
+    const unit = (m[2] || '').toUpperCase();
+    switch (unit) {
+      case 'TB': return num * 1024 * 1024 * 1024 * 1024;
+      case 'GB': return num * 1024 * 1024 * 1024;
+      case 'MB': return num * 1024 * 1024;
+      case 'KB': return num * 1024;
+      default: return num;
+    }
+  }
+  return null;
+}
+
 // ── Release info ──────────────────────────────────────────────────────────────
 
 // Vraci { size: "100.9", date: "12 June 2026" } nebo { size: null, date: null }
@@ -677,14 +699,32 @@ async function init() {
     console.warn('Config failed:', e);
   }
 
-  setText('nav-version', config.version || 'v?');
+  // Show version badge, ensure it starts with 'v'
+  const verRaw = config.version || null;
+  const ver = verRaw ? (String(verRaw).trim().toLowerCase().startsWith('v') ? String(verRaw).trim() : 'v' + String(verRaw).trim()) : 'v?';
+  setText('nav-version', ver);
 
-  if (config.githuburl)  document.getElementById('nav-github').href    = config.githuburl;
-  if (config.discordurl) {
-    document.getElementById('nav-discord').href    = config.discordurl;
-    document.getElementById('footer-discord').href = config.discordurl;
+  // Normalize and apply URLs from config
+  if (config.githuburl) {
+    let g = String(config.githuburl).trim();
+    if (!/^https?:\/\//i.test(g)) g = 'https://' + g;
+    const el = document.getElementById('nav-github');
+    if (el) el.href = g;
   }
-  if (config.downloadurl) document.getElementById('btn-download').href = config.downloadurl;
+  if (config.discordurl) {
+    let d = String(config.discordurl).trim();
+    if (!/^https?:\/\//i.test(d)) d = 'https://' + d;
+    const dEl = document.getElementById('nav-discord');
+    const fEl = document.getElementById('footer-discord');
+    if (dEl) dEl.href = d;
+    if (fEl) fEl.href = d;
+  }
+  if (config.downloadurl) {
+    let dl = String(config.downloadurl).trim();
+    if (!/^https?:\/\//i.test(dl)) dl = 'https://' + dl;
+    const btn = document.getElementById('btn-download');
+    if (btn) btn.href = dl;
+  }
 
   setText('footer-owner', config.creditowner || '');
   setText('footer-team',  config.creditteam  || '');
@@ -700,13 +740,66 @@ async function init() {
   } else {
     if (heroSkel) heroSkel.style.display = 'none';
   }
+  // Pokusime se nacist games.json a zapnout pocitadla her a DLC
+  try {
+    let gamesText = null;
+    if (config.availablegamesurl) {
+      try {
+        const rawUrl = toRawUrl(config.availablegamesurl) || config.availablegamesurl;
+        gamesText = await tryFetch(rawUrl);
+      } catch (e) {
+        console.warn('External games fetch failed, falling back to repo:', e);
+      }
+    }
+    if (!gamesText) {
+      try { gamesText = await loadFile('games.json'); } catch(_) { gamesText = null; }
+    }
+    const gamesList = parseGames(gamesText || '');
+    const counts = countAll(gamesList || []);
+    setText('stat-games', String(counts.games));
+    setText('stat-dlcs',  String(counts.dlcs));
 
-  // Velikost a datum docasne vypnuto - zatim jen placeholder
-  ['dl-size','dl-date','stat-size'].forEach(id => setText(id, '—'));
+    // Spocteme pribliznou celkovou velikost pokud jsou v datech velikosti
+    let totalBytes = 0;
+    const keys = ['size_bytes','size','bytes','download_size','install_size'];
+    for (const g of gamesList) {
+      let added = false;
+      for (const k of keys) {
+        const b = toBytes(g && g[k]);
+        if (b && isFinite(b)) { totalBytes += b; added = true; break; }
+      }
+      if (g && g.dlc) {
+        const dlcs = Array.isArray(g.dlc) ? g.dlc : [g.dlc];
+        for (const d of dlcs) {
+          for (const k of keys) {
+            const b = toBytes(d && d[k]);
+            if (b && isFinite(b)) { totalBytes += b; break; }
+          }
+        }
+      }
+    }
+    if (totalBytes > 0) setText('stat-size', fmtMB(totalBytes) + ' MB');
+    else setText('stat-size', '—');
+  } catch (e) {
+    console.warn('Games load failed:', e);
+    setText('stat-games', '—');
+    setText('stat-dlcs',  '—');
+    setText('stat-size', '—');
+  }
 
-  // Pocty her a DLC docasne vypnuto - zatim jen placeholder
-  setText('stat-games', '—');
-  setText('stat-dlcs',  '—');
+  // Doplnime informace z GitHub release (velikost a datum pro download)
+  try {
+    const rel = await fetchReleaseInfo(config.downloadurl);
+    const dlSizeText = rel.size ? (rel.size + ' MB') : null;
+    setText('dl-size', dlSizeText || '—');
+    setText('dl-date', rel.date || '—');
+    // Prefer release asset size for the Lightweight stat if available
+    if (dlSizeText) setText('stat-size', dlSizeText);
+  } catch (e) {
+    console.warn('Release info failed:', e);
+    setText('dl-size', '—');
+    setText('dl-date', '—');
+  }
 }
 
 init().catch(console.error);
