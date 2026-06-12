@@ -469,7 +469,8 @@ async function loadViaGHApi(path) {
   );
   if (!r.ok) throw new Error(`GH API HTTP ${r.status}`);
   const j = await r.json();
-  return atob(j.content.replace(/\n/g, ''));
+  // Odstran vsechny bile znaky z base64 (GitHub pridava \n i \r\n)
+  return atob(j.content.replace(/[\r\n\s]/g, ''));
 }
 
 // Nacte soubor - 5 zpusobu postupne:
@@ -507,10 +508,13 @@ function toRawUrl(githubUrl) {
 // ── JSON parsing ──────────────────────────────────────────────────────────────
 
 function cleanJson(s) {
-  // Odstran BOM a control characters (krome tab, LF, CR)
+  // Odstran BOM
   s = s.replace(/^\uFEFF/, '');
+  // Normalizuj konce radku (Windows \r\n → \n, starý Mac \r → \n)
+  s = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  // Odstran skutecne control characters (krome tab \x09 a newline \x0A)
   s = s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
-  // Odstran // komentare (mimo stringy - jednoducha verze)
+  // Odstran // komentare
   s = s.replace(/\/\/[^\n]*/g, '');
   // Odstran trailing carky pred } nebo ]
   s = s.replace(/,\s*([}\]])/g, '$1');
