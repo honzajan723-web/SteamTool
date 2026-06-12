@@ -11,7 +11,9 @@
         "denuvo": false,
         "launcher": false,
         "dlc": {
-          "x":"x"
+          {"name":"x",
+           "appid":"X",
+           "header_image":"https://cdn.akamai.steamstatic.com/steam/apps//header.jpg"
         },
         "header_image": "https://cdn.akamai.steamstatic.com/steam/apps//header.jpg"
     },
