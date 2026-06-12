@@ -1,6 +1,6 @@
   {
         "appid": "",
-        "name": "x",
+        "name": "",
         "release_date": "",
         "updated_date": "",
         "type": "game",
@@ -10,8 +10,8 @@
         "denuvo": false,
         "launcher": false,
         "dlc": {
-          {"name":"x",
-           "appid":"X",
+          {"name":"",
+           "appid":"",
            "header_image":"https://cdn.akamai.steamstatic.com/steam/apps//header.jpg"
         },
         "header_image": "https://cdn.akamai.steamstatic.com/steam/apps//header.jpg"
